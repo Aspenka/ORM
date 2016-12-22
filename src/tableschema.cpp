@@ -17,7 +17,7 @@ TableSchema::TableSchema(const QString & baseName, QString table, QObject *paren
  Конструктор копирования.
  const TableSchema &obj - объект, данные которого копируются в текущий объект
 ==============================================================================*/
-TableSchema::TableSchema(const TableSchema &obj, QObject *parent)
+TableSchema::TableSchema(const TableSchema &obj, QObject *parent) : QObject(parent)
 {
     copy(obj);
 }
@@ -41,8 +41,8 @@ bool TableSchema::operator ==(const TableSchema &right)
         (relatedTables == right.relatedTables) &&
         (tableName == right.tableName) &&
         (relations == right.relations) &&
-        (dbName == right.dbName) &&
-        (dbTables == right.dbTables))
+        (TableSchema::dbName == right.TableSchema::dbName) &&
+        (TableSchema::dbTables == right.TableSchema::dbTables))
     {
         return true;
     }
@@ -88,11 +88,12 @@ void TableSchema::clear()
 void TableSchema::generate(const QString & table)
 {
     using namespace globalData;
+    clear();
+    setTableName(table);
     if(connectToDB(database, dbName))
     {
         if(checkTable(table))
-        {
-            setTableName(table);
+        {            
             dbTables = database.tables();
             QSqlRecord record = database.record(tableName);
             setFields(record);
@@ -107,7 +108,7 @@ void TableSchema::generate(const QString & table)
     }
     else
     {
-        printError(DB_ERROR, database.lastError().text());
+        printError(DB_ERROR, TableSchema::database.lastError().text());
     }
 }
 
@@ -117,13 +118,7 @@ void TableSchema::generate(const QString & table)
 QStringList TableSchema::getTables(const QString & databaseName)
 {
     using namespace globalData;
-    if((databaseName == dbName) && (dbName != ""));
-    {
-        if(!dbTables.isEmpty())
-        {
-            return dbTables;
-        }
-    }
+    QSqlDatabase database;
     if(connectToDB(database, databaseName))
     {
         return database.tables();
@@ -180,8 +175,9 @@ QPair<QString, QString> TableSchema::getRelation(const QString &tableName)
     }
     else
     {
-        printError(EXISTS_RELATION, tableName);
+        printError(EXISTS_RELATION, tableName);       
     }
+    return QPair <QString, QString>();
 }
 
 /*==============================================================================
@@ -197,6 +193,10 @@ bool TableSchema::checkField(const QString &fieldName)
 ==============================================================================*/
 bool TableSchema::checkTable(const QString & tableName)
 {
+    if(dbTables.isEmpty())
+    {
+        dbTables = TableSchema::getTables(dbName);
+    }
     return dbTables.contains(tableName);
 }
 
@@ -292,8 +292,8 @@ void TableSchema::setRelations()
                 boundField = tableName + "." + boundField;
                 linkedField = linkedTable + "." + linkedField;
                 relations.insert(linkedTable, QPair <QString, QString> (boundField, linkedField));
-                //setRelation(linkedTable, boundField, linkedField);
-           }
+                relatedTables.append(linkedTable);
+            }
        }
        else
        {

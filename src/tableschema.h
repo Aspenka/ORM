@@ -6,6 +6,7 @@
 #include <QString>
 #include <QList>
 #include <QMap>
+#include <QPair>
 #include <QtSql>
 
 typedef QMap <QString, QPair <QString, QString>> relation_t;
@@ -22,8 +23,7 @@ private:
     QString             dbName;         //имя БД
     relation_t          relations;      //перечень связей
     QString             tableName;      //имя таблицы
-    static QSqlDatabase database;       //база данных
-
+    QSqlDatabase        database;       //база данных
 
 /*=========================Методы========================================*/
     void                copy                (const TableSchema &obj);   //копирование данных в текущий объект
