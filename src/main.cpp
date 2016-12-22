@@ -39,7 +39,7 @@ void printSchema(TableSchema *schema)
 {
     QString tableName = schema->getTableName();
     QStringList fields = schema->getFields();
-    QStringList pk = schema->getPrimaryKey();
+    QStringList pk = schema->getPrimaryKeys();
     QStringList relatedTables = schema->getRelatedTables();
 
     printList(fields, QString(tableName + " fields:"));

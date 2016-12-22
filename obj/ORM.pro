@@ -13,10 +13,14 @@ TEMPLATE = app
 
 SOURCES += \
     ../src/main.cpp \
-    ../src/tableschema.cpp
+    ../src/tableschema.cpp \
+    ../src/model.cpp \
+    ../src/query.cpp
 
 HEADERS += \
     ../src/tableschema.h \
-    ../src/globaldata.h
+    ../src/globaldata.h \
+    ../src/model.h \
+    ../src/query.h
 
 

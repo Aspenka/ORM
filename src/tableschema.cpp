@@ -37,7 +37,7 @@ TableSchema &TableSchema::operator =(const TableSchema &obj)
 bool TableSchema::operator ==(const TableSchema &right)
 {
     if ((fields == right.fields) &&
-        (primaryKey == right.primaryKey) &&
+        (primaryKeys == right.primaryKeys) &&
         (relatedTables == right.relatedTables) &&
         (tableName == right.tableName) &&
         (relations == right.relations) &&
@@ -75,7 +75,7 @@ void TableSchema::setTableName(const QString & name)
 void TableSchema::clear()
 {
     fields.clear();
-    primaryKey.clear();
+    primaryKeys.clear();
     relatedTables.clear();
     tableName = "";
     relations.clear();
@@ -98,7 +98,7 @@ void TableSchema::generate(const QString & table)
             QSqlRecord record = database.record(tableName);
             setFields(record);
             QSqlIndex index = database.primaryIndex(tableName);
-            setPrimaryKey(index);
+            setPrimaryKeys(index);
             setRelations();
         }
         else
@@ -141,9 +141,9 @@ QStringList TableSchema::getFields()
 /*==============================================================================
  Метод возвращает перечень первичных ключей таблицы
 ==============================================================================*/
-QStringList TableSchema::getPrimaryKey()
+QStringList TableSchema::getPrimaryKeys()
 {
-    return primaryKey;
+    return primaryKeys;
 }
 
 /*==============================================================================
@@ -178,6 +178,14 @@ QPair<QString, QString> TableSchema::getRelation(const QString &tableName)
         printError(EXISTS_RELATION, tableName);       
     }
     return QPair <QString, QString>();
+}
+
+/*==============================================================================
+ Метод возвращает сгенерированный перечень отношений
+==============================================================================*/
+relation_t TableSchema::getRelations()
+{
+    return relations;
 }
 
 /*==============================================================================
@@ -235,7 +243,7 @@ bool TableSchema::checkRelation(const QString & relationName)
 void TableSchema::copy(const TableSchema & obj)
 {
     fields = obj.fields;
-    primaryKey = obj.primaryKey;
+    primaryKeys = obj.primaryKeys;
     relatedTables = obj.relatedTables;
     dbTables = obj.dbTables;
     relations = obj.relations;
@@ -259,11 +267,11 @@ void TableSchema::setFields(const QSqlRecord & record)
  Метод заполняет данные о первичных ключах записи, используя информацию из БД.
  QSqlIndex index - информация о первичных ключах таблицы
 ==============================================================================*/
-void TableSchema::setPrimaryKey(QSqlIndex index)
+void TableSchema::setPrimaryKeys(QSqlIndex index)
 {
     for(int i = 0; i < index.count(); i++)
     {
-        primaryKey.append(index.fieldName(i));
+        primaryKeys.append(index.fieldName(i));
     }
 }
 
