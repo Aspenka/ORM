@@ -61,7 +61,7 @@ private:
     QString             dbName;         //имя БД
     relation_t          relations;      //перечень связей
     QString             tableName;      //имя таблицы
-    QSqlDatabase        database;       //база данных
+    QSqlDatabase        base;           //база данных
 
 
     void                copy                (const TableSchema &obj);   //копирование данных в текущий объект
@@ -71,6 +71,7 @@ private:
 
 public:
     explicit            TableSchema         (const QString & baseName, QString table = "", QObject *parent = 0);    //конутрктор по умолчанию
+                        TableSchema         (QObject *parent = 0);
                         TableSchema         (const TableSchema & obj, QObject *parent = 0);                         //конструктор копирования
 
     TableSchema &       operator =          (TableSchema const & obj);      //перегрузка оператора =

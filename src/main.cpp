@@ -1,16 +1,17 @@
 #include <QCoreApplication>
 #include <QPair>
 #include "tableschema.h"
+#include "table.h"
 
 TableSchema *   getSchema   (const QString & tableName);
-void            printSchema (TableSchema * schema);
+void            printSchema (TableSchema schema);
 void            printList   (const QStringList & list, const QString &text);
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    QStringList tables = TableSchema::getTables("base.db");
+    /*QStringList tables = TableSchema::getTables("base.db");
     printList(tables, QString("Database tablesinfo:"));
 
     TableSchema *DLRT_sch = getSchema("gateway_target");
@@ -22,6 +23,10 @@ int main(int argc, char *argv[])
     qDebug() << "\nSchema of \"wrong\":";
     printSchema(wrong_sch);
     delete wrong_sch;
+
+    TableSchema DLRT_sch = Table::instance().get("gateway_target");
+    qDebug() << "\nSchema of \"gateway_target\":";
+    printSchema(DLRT_sch);*/
 
     qDebug() << "\nPlease press any key...";
 
@@ -35,12 +40,12 @@ TableSchema * getSchema(const QString & tableName)
     return sch;
 }
 
-void printSchema(TableSchema *schema)
+void printSchema(TableSchema schema)
 {
-    QString tableName = schema->getTableName();
-    QStringList fields = schema->getFields();
-    QStringList pk = schema->getPrimaryKeys();
-    QStringList relatedTables = schema->getRelatedTables();
+    QString tableName = schema.getTableName();
+    QStringList fields = schema.getFields();
+    QStringList pk = schema.getPrimaryKeys();
+    QStringList relatedTables = schema.getRelatedTables();
 
     printList(fields, QString(tableName + " fields:"));
     printList(pk, QString(tableName + " primary keys:"));
@@ -51,7 +56,7 @@ void printSchema(TableSchema *schema)
     {
         foreach(QString i, relatedTables)
         {
-            QPair <QString, QString> p(schema->getRelation(i));
+            QPair <QString, QString> p(schema.getRelation(i));
             qDebug() << i << ": " << p.first
                      << "->" << p.second;
         }

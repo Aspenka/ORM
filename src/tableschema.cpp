@@ -13,6 +13,11 @@ TableSchema::TableSchema(const QString & baseName, QString table, QObject *paren
     dbName = baseName;
 }
 
+TableSchema::TableSchema(QObject *parent) : QObject(parent)
+{
+
+}
+
 /*==============================================================================
  Конструктор копирования.
  const TableSchema &obj - объект, данные которого копируются в текущий объект
@@ -87,45 +92,43 @@ void TableSchema::clear()
 ==============================================================================*/
 void TableSchema::generate(const QString & table)
 {
-    using namespace globalData;
     clear();
     setTableName(table);
-    if(connectToDB(database, dbName))
+    if(databases::connectToDB(base, dbName))
     {
         if(checkTable(table))
         {            
-            dbTables = database.tables();
-            QSqlRecord record = database.record(tableName);
+            dbTables = base.tables();
+            QSqlRecord record = base.record(tableName);
             setFields(record);
-            QSqlIndex index = database.primaryIndex(tableName);
+            QSqlIndex index = base.primaryIndex(tableName);
             setPrimaryKeys(index);
             setRelations();
         }
         else
         {
-            printError(EXISTS_TABLE, table);
+            errors::printError(errors::EXISTS_TABLE, table);
         }
     }
     else
     {
-        printError(DB_ERROR, TableSchema::database.lastError().text());
+        errors::printError(errors::DB_ERROR, base.lastError().text());
     }
 }
 
 /*==============================================================================
  Метод возвращает перечень таблиц БД
 ==============================================================================*/
-QStringList TableSchema::getTables(const QString & databaseName)
+QStringList TableSchema::getTables(const QString & baseName)
 {
-    using namespace globalData;
-    QSqlDatabase database;
-    if(connectToDB(database, databaseName))
+    QSqlDatabase base;
+    if(databases::connectToDB(base, baseName))
     {
-        return database.tables();
+        return base.tables();
     }
     else
     {
-        printError(DB_ERROR, database.lastError().text());
+        errors::printError(errors::DB_ERROR, base.lastError().text());
         return QStringList();
     }
 }
@@ -168,14 +171,13 @@ QString TableSchema::getTableName()
 ==============================================================================*/
 QPair<QString, QString> TableSchema::getRelation(const QString &tableName)
 {
-    using namespace globalData;
     if(checkRelation(tableName))
     {
         return relations.value(tableName);
     }
     else
     {
-        printError(EXISTS_RELATION, tableName);       
+        errors::printError(errors::EXISTS_RELATION, tableName);
     }
     return QPair <QString, QString>();
 }
@@ -213,7 +215,6 @@ bool TableSchema::checkTable(const QString & tableName)
 ==============================================================================*/
 bool TableSchema::checkRelation(const QString & relationName)
 {
-    using namespace globalData;
     if(relations.contains(relationName))
     {
         return true;
@@ -230,7 +231,7 @@ bool TableSchema::checkRelation(const QString & relationName)
         }
         else
         {
-            printError(EXISTS_RELATION, relationName);
+            errors::printError(errors::EXISTS_RELATION, relationName);
             return false;
         }
     }
@@ -280,37 +281,44 @@ void TableSchema::setPrimaryKeys(QSqlIndex index)
 ==============================================================================*/
 void TableSchema::setRelations()
 {
-    using namespace globalData;
-    QSqlQuery *query = new QSqlQuery(database);
-    QString str = "PRAGMA foreign_keys = ON";
-    query->prepare(str);
-    if(query->exec())
+    QSqlQuery *query = new QSqlQuery(base);
+
+    if(databases::connectToDB(base, dbName))
     {
-        query->clear();
-        str.clear();
-        str = "pragma foreign_key_list(" + tableName + ")";
+        QString str = "PRAGMA foreign_keys = ON";
         query->prepare(str);
         if(query->exec())
         {
-            while(query->next())
+            query->clear();
+            str.clear();
+            str = "pragma foreign_key_list(" + tableName + ")";
+            query->prepare(str);
+            if(query->exec())
             {
-                QString linkedTable = query->value(2).toString();
-                QString boundField = query->value(3).toString();
-                QString linkedField = query->value(4).toString();
-                boundField = tableName + "." + boundField;
-                linkedField = linkedTable + "." + linkedField;
-                relations.insert(linkedTable, QPair <QString, QString> (boundField, linkedField));
-                relatedTables.append(linkedTable);
+                while(query->next())
+                {
+                    QString linkedTable = query->value(2).toString();
+                    QString boundField = query->value(3).toString();
+                    QString linkedField = query->value(4).toString();
+                    boundField = tableName + "." + boundField;
+                    linkedField = linkedTable + "." + linkedField;
+                    relations.insert(linkedTable, QPair <QString, QString> (boundField, linkedField));
+                    relatedTables.append(linkedTable);
+                }
             }
-       }
-       else
-       {
-            printError(QUERY_ERROR, query->lastError().text());
-       }
+            else
+            {
+                errors::printError(errors::QUERY_ERROR, query->lastError().text());
+            }
+        }
+        else
+        {
+            errors::printError(errors::QUERY_ERROR, query->lastError().text());
+        }
+        delete query;
     }
     else
     {
-        printError(QUERY_ERROR, query->lastError().text());
+        errors::printError(errors::DB_ERROR, base.lastError().text());
     }
-    delete query;
 }

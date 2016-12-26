@@ -15,12 +15,14 @@ SOURCES += \
     ../src/main.cpp \
     ../src/tableschema.cpp \
     ../src/model.cpp \
-    ../src/query.cpp
+    ../src/query.cpp \
+    ../src/globaldata.cpp
 
 HEADERS += \
     ../src/tableschema.h \
     ../src/globaldata.h \
     ../src/model.h \
-    ../src/query.h
+    ../src/query.h \
+    ../src/table.h
 
 
