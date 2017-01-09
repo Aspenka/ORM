@@ -2,31 +2,34 @@
 #include <QPair>
 #include "tableschema.h"
 #include "table.h"
+#include "query.h"
+#include "model.h"
 
 TableSchema *   getSchema   (const QString & tableName);
 void            printSchema (TableSchema schema);
 void            printList   (const QStringList & list, const QString &text);
 
+Query &         tuneQuery   (Query &query);
+void            getQuery    (Query & query);
+Query &         tuneCount   (Query & query);
+void            getCount    (Query & query);
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    /*QStringList tables = TableSchema::getTables("base.db");
-    printList(tables, QString("Database tablesinfo:"));
+    Query q(QString("gateway_action"));
+    tuneQuery(q);
+    getQuery(q);
 
-    TableSchema *DLRT_sch = getSchema("gateway_target");
-    qDebug() << "\nSchema of \"gateway_target\":";
-    printSchema(DLRT_sch);
-    delete DLRT_sch;
+    q.clearAll();
+    tuneCount(q);
+    getCount(q);
 
-    TableSchema *wrong_sch = getSchema("wrong");
-    qDebug() << "\nSchema of \"wrong\":";
-    printSchema(wrong_sch);
-    delete wrong_sch;
-
-    TableSchema DLRT_sch = Table::instance().get("gateway_target");
-    qDebug() << "\nSchema of \"gateway_target\":";
-    printSchema(DLRT_sch);*/
+    q.removeParameter(COUNT);
+    q.setWhere("gateway_target_group", 1818);
+    q.setOrder("gateway_action_uid");
+    getQuery(q);
 
     qDebug() << "\nPlease press any key...";
 
@@ -81,4 +84,32 @@ void printList(const QStringList &list, const QString &text)
     {
         qDebug() << "\tis empty.";
     }
+}
+
+Query & tuneQuery (Query & query)
+{
+    query.setLimit(3);
+    query.setOrder(QString("priority"), true);
+    query.setWhere(QString("gateway_target_group"), QString("1818"));
+
+    QStringList list;
+    list << "gateway_action_uid" << "meas_type_uid" << "gateway_parametr_uid" << "priority";
+    query.setSelectedFields(list);
+    return query;
+}
+
+void getQuery (Query & query)
+{
+    Model *model = query.getOne();
+}
+
+Query & tuneCount (Query & query)
+{
+    query.setCount("gateway_action_uid");
+    query.setWhere("device_parametr_uid", 51);
+    return query;
+}
+void getCount (Query & query)
+{
+    int count = query.getCount();
 }

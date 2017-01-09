@@ -3,19 +3,64 @@
 
 #include <QObject>
 #include <QStringList>
+#include <QMap>
+#include <QPair>
 #include "tableschema.h"
 #include "model.h"
 
+/*========================================================================
+ Перечисление, содержащее информацию о параметрах SQL-запроса:
+ SELECTIONS - выбранные поля;
+ WHERE      - условия выборки;
+ ORDER      - сортировка;
+ LIMIT      - ограничение по выборке записей;
+ INNER_JOIN - выборка свнутренним объединением таблиц;
+ OUTER_JOIN - выборка с внешним объединением таблиц.
+========================================================================*/
 enum parameter_e
 {
     SELECTIONS,
     WHERE,
     ORDER,
     LIMIT,
+    COUNT,
     INNER_JOIN,
     OUTER_JOIN
 };
 
+/*========================================================================
+ Класс Query представлят собой объект, генерирующий и выполняющий SQL-зап-
+ росы по выборке данных, а так же возвращающий  данные, полученные  в  ре-
+ зультате  выполнения этих SQL-запросов.
+
+ Класс включает в себя перечень полей, содержащих следующую информацию:
+ - схема запрашиваемых данных;
+ - перечень полей для выборки данных;
+ - условия для формирования выборки данных;
+ - порядок сортировки данных;
+ - флаг осуществления подсчета количества записей,  полученных в результа-
+   те выполнения SQL-запроса;
+ - количество записей по запрошенной выборке;
+ - данные по внешнему объединениею таблиц;
+ - данные по внутреннему объединению таблиц;
+ - сгенерированный SQL-запрос
+
+ Методы класса подволяют выполнять следующий набор действий:
+ - генерация отдельных компонентов SQL-запроса и самого SQL-запроса;
+ - установка новой схемы данных для генерации запроса;
+ - установка данных, необходимых для генерации SQL-запроса, а именно:
+   - поля, по которым осуществляется выборка данных;
+   - условия для формирования выборки;
+   - информация по сортировке записей;
+   - установка ограничений по выборке записей;
+   - установка информации по внешним и внутренним объединениям таблиц;
+ - получение одной записи по запросу;
+ - получение всех записей по запросу;
+ - получение количества записей, получившихся в результате выполнения зап-
+   роса;
+ - удаление одного из компонентов SQL-запроса;
+ - очищение данных текущего объекта.
+========================================================================*/
 class Query : public QObject
 {
     Q_OBJECT
@@ -23,38 +68,38 @@ private:
     TableSchema         schema;         //схема запрашиваемых данных
     QStringList         selectedFields; //перечень полей для выборки
     QMap
-    <QString, QString>  where;          //строка с условием выборки
-    QPair <bool, bool>  order;          //порядок сортировки выборанных данных
-    bool                countFlag;      //флаг формирования строки подсчета выбранных полей
-    int                 limit,          //рганичение на количество выводимых записей
-                        count;          //количество записей по запрошенной выборке
+    <QString, QVariant> where;          //строка с условием выборки
+    QPair
+    <QString, bool>     order;          //порядок сортировки выборанных данных
+    int                 limit;          //ограничение на количество выводимых записей
     QString             outerJoin,      //выборка с внешним объединением таблиц
                         innerJoin,      //выорка с внутренним объединением таблиц
+                        count,          //количество записей по запрошенной выборке
                         sqlString;      //строка SQL-запроса
 
-    QString     generateSql         ();                             //генерация строки SQL-запроса
-    QString     generateSelections  (QStringList list);             //генерация строки выборанных полей
-    QString     generateWhere       (QMap <QString, QString> map);  //генерация строки условий
-    QString     generateOrder       (QPair <bool, bool> pair);      //генерация строки с условиями сортировки выборки
-    QString     generateLimit       (int value);                    //генерация строки с ограничением по выборке
-    QString     generateCount       (bool flag);                    //генерация строки с подсчетом количества выборанных записей
-    QString     generateOuterJoin   (QString relatedTable);         //генерация выборки с внешним объединением
-    QString     generateInnerJoin   (QString relatedTable);         //генерация выборки с внутренним объединением таблиц
+    QString     generateSql         ();                                                         //генерация строки SQL-запроса
+    QString     generateSelections  (const QStringList & list);                                 //генерация строки выборанных полей
+    QString     generateWhere       (const QMap<QString, QVariant> & map);                      //генерация строки условий
+    QString     generateOrder       (const QPair<QString, bool> &pair);                         //генерация строки с условиями сортировки выборки
+    QString     generateLimit       (int value = 0);                                            //генерация строки с ограничением по выборке
+    QString     generateCount       (QString fieldName);                                        //генерация строки с подсчетом количества выборанных записей
+    QString     generateJoin        (const QString & joinType, const QString & relatedTable);   //генерация выборки с объединением таблиц
 public:
-    explicit    Query               (QString tableName, QObject *parent = 0);   //конструктор по умолчанию
+    explicit    Query               (const QString & tableName, QObject *parent = 0);   //конструктор по умолчанию
 
-    void        setSchema           (QString tableName);                    //установка новой схемы данных
-    void        setSelectedFields   (QStringList list);                     //установка полей для выборки
-    void        setWhere            (QString fieldName, QVariant value);    //установка условия выборки
-    void        setOrder            (bool desc = false);                    //установка флага сортировки записей
-    void        setLimit            (int limit);                            //установка ограничения на количество выбранных записей
-    void        withOuterJoin       (QString relatedTable);                 //установка выборки с внешним объединением
-    void        withInnerJoin       (QString relatedTable);                 //установка выборки с внутренним объединением
+    void        setSchema           (const QString & tableName);                            //установка новой схемы данных
+    void        setSelectedFields   (const QStringList & list);                             //установка полей для выборки???
+    void        setWhere            (const QString & fieldName, const QVariant & value);    //установка условия выборки
+    void        setOrder            (QString fieldName, bool desc = false);                 //установка флага сортировки записей
+    void        setLimit            (int lim);                                              //установка ограничения на количество выбранных записей
+    void        setCount            (QString fieldName = "*");                              //установка подсчета количества полученных записей
+    void        withOuterJoin       (const QString & relatedTable);                         //установка выборки с внешним объединением
+    void        withInnerJoin       (const QString & relatedTable);                         //установка выборки с внутренним объединением
 
-    Model *     getOne              (); //получить одну запись по выборке
+    Model *     getOne              ();                     //получить одну запись по выборке
     QList
-    <Model *>   getAll              (); //получить перечень записей по выборке
-    int         getCount            (); //полсчитать количество записей по выборке
+    <Model *>   getAll              ();                     //получить перечень записей по выборке
+    int         getCount            ();    //подсчитать количество записей по выборке
 
     void        removeParameter     (parameter_e name); //удалить параметр из запроса
     void        clearAll            ();                 //очистка всех параметров объекта

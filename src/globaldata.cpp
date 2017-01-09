@@ -1,10 +1,18 @@
 #include "globaldata.h"
 
+/*==============================================================================
+ Метод возвращает текущую дату и время в формате yyyy-MM-dd hh:mm:ss
+==============================================================================*/
 QString errors::getCurrentDate ()
 {
     return QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
 }
 
+/*==============================================================================
+ Метод выводит на экран сообщение, в зависимости от кода ошибки
+ code - код ошибки;
+ value - часть сообщения об ошибке
+==============================================================================*/
 void errors::printError (const errors_e code, const QString & value)
 {
     switch(code)
@@ -37,6 +45,11 @@ void errors::printError (const errors_e code, const QString & value)
     }
 }
 
+/*==============================================================================
+ Метод возвращает результат подключения к БД
+ database - объект по работе с БД
+ name - имя базы данных, к которой осуществляется подключение
+==============================================================================*/
 bool databases::connectToDB (QSqlDatabase &database, QString name)
 {
     if(QSqlDatabase::contains("dbConnection"))
@@ -56,4 +69,22 @@ bool databases::connectToDB (QSqlDatabase &database, QString name)
     {
         return true;
     }
+}
+
+/*==============================================================================
+ Метод конвертирует значение value в строку для  SQL-запроса  в  соответствующем
+ формате
+==============================================================================*/
+QString SQL::convertToSQLString(const QVariant &value)
+{
+    QString res;
+    if(value.type() == QVariant::String)
+    {
+        res = "'" + value.toString() + "'";
+    }
+    else
+    {
+        res = value.toString();
+    }
+    return res;
 }
