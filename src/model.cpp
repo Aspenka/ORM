@@ -1,12 +1,15 @@
 #include "model.h"
+#include "table.h"
+#include "query.h"
 
 /*==============================================================================
  Конструктор по умолчанию.
  tableName - имя таблицы, для которой создается модель записи
 ==============================================================================*/
-Model::Model(QString tableName, QObject *parent) : QObject(parent)
+Model::Model(QString tableName, QObject *parent) : QObject(parent),
+    schema(tableName)
 {
-    Q_UNUSED(tableName);
+    setSchema(tableName);
 }
 
 /*==============================================================================
@@ -15,7 +18,7 @@ Model::Model(QString tableName, QObject *parent) : QObject(parent)
 ==============================================================================*/
 Model::Model(const Model &obj, QObject)
 {
-    Q_UNUSED(obj);
+    copy(obj);
 }
 
 /*==============================================================================
@@ -23,7 +26,7 @@ Model::Model(const Model &obj, QObject)
 ==============================================================================*/
 Model &Model::operator =(const Model &obj)
 {
-    Q_UNUSED(obj);
+    copy(obj);
     return *(this);
 }
 
@@ -32,8 +35,17 @@ Model &Model::operator =(const Model &obj)
 ==============================================================================*/
 bool Model::operator ==(const Model &right)
 {
-    Q_UNUSED(right);
-    return true;
+    if( (schema  == right.schema) &&
+        (record == right.record) &&
+        (relationData == right.relationData) &&
+        (exists == right.exists))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /*==============================================================================
@@ -41,16 +53,62 @@ bool Model::operator ==(const Model &right)
 ==============================================================================*/
 bool Model::operator !=(const Model &right)
 {
-    Q_UNUSED(right);
-    return true;
+    return !(this == & right);
 }
 
 /*==============================================================================
- Метод копирует данные из объекта obj в текущий объект
+ Метод генерирует строку SQL-запроса на добавление записи в БД
 ==============================================================================*/
+QString Model::generateInsert()
+{
+    return QString("");
+}
+
+/*==============================================================================
+ Метод генерирует строку SQL-запроса на удаление записи в БД
+==============================================================================*/
+QString Model::generateUpdate()
+{
+    return QString("");
+}
+
 void Model::copy(const Model &obj)
 {
-    Q_UNUSED(obj);
+    schema = obj.schema;
+    record = obj.record;
+    relationData == obj.relationData;
+    exists = obj.exists;
+}
+
+/*==============================================================================
+ Метод проверяет наличие существования текущей записи в соответствующей таблице
+ в БД (!!наличие записи подтверждается при совпадении только первичного ключа!!)
+==============================================================================*/
+bool Model::checkExistence()
+{
+    Query query(schema.getTableName());
+    query.setCount();
+
+    QStringList primaryList = schema.getPrimaryKeys();
+    for(int i = 0; i < primaryList.size(); ++i)
+    {
+        QString fieldName = primaryList.at(i);
+        query.setWhere(fieldName, getRecord(fieldName));
+    }
+
+    if(query.getCount() != 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+/*==============================================================================
+ Метод выполняет SQL-запрос и возвращает результаты его выполнения
+==============================================================================*/
+bool Model::execQuery()
+{
+    return true;
 }
 
 /*==============================================================================
@@ -60,8 +118,7 @@ void Model::copy(const Model &obj)
 ==============================================================================*/
 void Model::setRecord(const QString &fieldName, const QVariant &value)
 {
-    Q_UNUSED(fieldName);
-    Q_UNUSED(value);
+    record.insert(fieldName, value);
 }
 
 /*==============================================================================
@@ -69,10 +126,9 @@ void Model::setRecord(const QString &fieldName, const QVariant &value)
  relationName - имя связи
  relationModel - связанная модель
 ==============================================================================*/
-void Model::setRelationData(const QString &relationName, const Model *relationModel)
+void Model::setRelationData(const QString &relationName, Model *relationModel)
 {
-    Q_UNUSED(relationName);
-    Q_UNUSED(relationModel);
+    relationData.insert(relationName, relationModel);
 }
 
 /*==============================================================================
@@ -81,16 +137,36 @@ void Model::setRelationData(const QString &relationName, const Model *relationMo
 ==============================================================================*/
 void Model::setExists(bool value)
 {
-    Q_UNUSED(value);
+    exists = value;
+}
+
+/*==============================================================================
+ Метод устанавливает новую схему данных в соответствии с именем таблицы
+ tableName
+==============================================================================*/
+void Model::setSchema(const QString &tableName)
+{
+    if(databases::checkTable(tableName, QString("base.db")))
+    {
+        schema = Table::instance().get(tableName);
+    }
+    else
+    {
+        errors::printError(errors::EXISTS_TABLE, tableName);
+        schema.clear();
+    }
 }
 
 /*==============================================================================
  Метод возвращает значение конкретной записи по имени поля fieldName
 ==============================================================================*/
-QString Model::getRecord(const QString &fieldName)
+QVariant Model::getRecord(const QString &fieldName)
 {
-    Q_UNUSED(fieldName);
-    return QString("");
+    if(record.contains(fieldName))
+    {
+        return record.value(fieldName);
+    }
+    return QVariant("");
 }
 
 /*==============================================================================
@@ -98,8 +174,11 @@ QString Model::getRecord(const QString &fieldName)
 ==============================================================================*/
 Model *Model::getRelationData(const QString &relationName)
 {
-    Q_UNUSED(relationName);
-    return this;
+    if(relationData.contains(relationName))
+    {
+        return relationData.value(relationName);
+    }
+    return new Model("");
 }
 
 /*==============================================================================
@@ -107,7 +186,11 @@ Model *Model::getRelationData(const QString &relationName)
 ==============================================================================*/
 bool Model::isExists()
 {
-    return true;
+    if(!exists)
+    {
+        exists = checkExistence();
+    }
+    return exists;
 }
 
 /*==============================================================================
@@ -131,6 +214,9 @@ bool Model::remove()
 ==============================================================================*/
 void Model::clear()
 {
-
+    schema.clear();
+    record.clear();
+    relationData.clear();
+    exists = false;
 }
 

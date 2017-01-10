@@ -28,6 +28,9 @@ enum parameter_e
     OUTER_JOIN
 };
 
+typedef QList <QList <QPair <QString, QVariant>>>   matrix_t;   //тип данных, позволяющий хранить все записи, полученные в результате выборки
+typedef QList <QPair <QString, QVariant>>           list_t;     //тип данных, позволяющий хранить одну запись, полученную в результате выборки
+
 /*========================================================================
  Класс Query представлят собой объект, генерирующий и выполняющий SQL-зап-
  росы по выборке данных, а так же возвращающий  данные, полученные  в  ре-
@@ -75,6 +78,7 @@ private:
     QString             outerJoin,      //выборка с внешним объединением таблиц
                         innerJoin,      //выорка с внутренним объединением таблиц
                         count,          //количество записей по запрошенной выборке
+                        relatedTName,   //имя связанной таблицы
                         sqlString;      //строка SQL-запроса
 
     QString     generateSql         ();                                                         //генерация строки SQL-запроса
@@ -84,6 +88,12 @@ private:
     QString     generateLimit       (int value = 0);                                            //генерация строки с ограничением по выборке
     QString     generateCount       (QString fieldName);                                        //генерация строки с подсчетом количества выборанных записей
     QString     generateJoin        (const QString & joinType, const QString & relatedTable);   //генерация выборки с объединением таблиц
+
+    matrix_t    dbRequest           (const QString & sql, const QString & tableName);   //выполнение сгенерированного SQL-запроса
+    Model *     createModel         (const list_t & record, const QString &tableName);  //заполнение модели данными
+    QList
+    <Model*>    handleResult        (bool isOne = true);    //
+
 public:
     explicit    Query               (const QString & tableName, QObject *parent = 0);   //конструктор по умолчанию
 

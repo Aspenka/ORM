@@ -46,8 +46,7 @@ bool TableSchema::operator ==(const TableSchema &right)
         (relatedTables == right.relatedTables) &&
         (tableName == right.tableName) &&
         (relations == right.relations) &&
-        (TableSchema::dbName == right.TableSchema::dbName) &&
-        (TableSchema::dbTables == right.TableSchema::dbTables))
+        (dbName == right.TableSchema::dbName))
     {
         return true;
     }
@@ -96,9 +95,8 @@ void TableSchema::generate(const QString & table)
     setTableName(table);
     if(databases::connectToDB(base, dbName))
     {
-        if(checkTable(table))
+        if(databases::checkTable(table, dbName))
         {            
-            dbTables = base.tables();
             QSqlRecord record = base.record(tableName);
             setFields(record);
             QSqlIndex index = base.primaryIndex(tableName);
@@ -113,23 +111,6 @@ void TableSchema::generate(const QString & table)
     else
     {
         errors::printError(errors::DB_ERROR, base.lastError().text());
-    }
-}
-
-/*==============================================================================
- Метод возвращает перечень таблиц БД
-==============================================================================*/
-QStringList TableSchema::getTables(const QString & baseName)
-{
-    QSqlDatabase base;
-    if(databases::connectToDB(base, baseName))
-    {
-        return base.tables();
-    }
-    else
-    {
-        errors::printError(errors::DB_ERROR, base.lastError().text());
-        return QStringList();
     }
 }
 
@@ -199,18 +180,6 @@ bool TableSchema::checkField(const QString &fieldName)
 }
 
 /*==============================================================================
- Метод проверяет наличие таблицы tableName в БД
-==============================================================================*/
-bool TableSchema::checkTable(const QString & tableName)
-{
-    if(dbTables.isEmpty())
-    {
-        dbTables = TableSchema::getTables(dbName);
-    }
-    return dbTables.contains(tableName);
-}
-
-/*==============================================================================
  Метод проверяет наличие отношения таблицы с именем tableName к текущей таблице
 ==============================================================================*/
 bool TableSchema::checkRelation(const QString & relationName)
@@ -246,7 +215,6 @@ void TableSchema::copy(const TableSchema & obj)
     fields = obj.fields;
     primaryKeys = obj.primaryKeys;
     relatedTables = obj.relatedTables;
-    dbTables = obj.dbTables;
     relations = obj.relations;
     tableName = obj.tableName;
     dbName = obj.dbName;

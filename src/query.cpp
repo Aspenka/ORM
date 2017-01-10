@@ -1,3 +1,4 @@
+#include <QtSql>
 #include "query.h"
 #include "table.h"
 
@@ -20,7 +21,15 @@ Query::Query(const QString & tableName, QObject *parent) : QObject(parent),
 ==============================================================================*/
 void Query::setSchema(const QString &tableName)
 {
-    schema = Table::instance().get(tableName);
+    if(databases::checkTable(tableName, QString("base.db")))
+    {
+        schema = Table::instance().get(tableName);
+    }
+    else
+    {
+        errors::printError(errors::EXISTS_TABLE, tableName);
+        schema.clear();
+    }
 }
 
 /*==============================================================================
@@ -85,6 +94,7 @@ void Query::setCount(QString fieldName)
 void Query::withOuterJoin(const QString &relatedTable)
 {
     outerJoin = generateJoin(QString(" LEFT OUTER JOIN "), relatedTable);
+    relatedTName = relatedTable;
 }
 
 /*==============================================================================
@@ -94,6 +104,7 @@ void Query::withOuterJoin(const QString &relatedTable)
 void Query::withInnerJoin(const QString &relatedTable)
 {
     innerJoin = generateJoin(QString(" INNER JOIN "), relatedTable);
+    relatedTName = relatedTable;
 }
 
 /*==============================================================================
@@ -101,10 +112,7 @@ void Query::withInnerJoin(const QString &relatedTable)
 ==============================================================================*/
 Model *Query::getOne()
 {    
-    //////////
-    sqlString = generateSql();
-    qDebug() << "SQL-query:\n" << sqlString;
-    return new Model("");
+    return handleResult().at(0);
 }
 
 /*==============================================================================
@@ -112,10 +120,68 @@ Model *Query::getOne()
 ==============================================================================*/
 QList<Model *> Query::getAll()
 {
-    //////////
+    return handleResult(false);
+}
+
+/*==============================================================================
+ Метод обрабатывает результаты выполнения запроса и возвращает их в удобном  для
+ дальнейшей обработки виде
+ isOne - флаг, показывающий, сколько записей нужно обработать
+==============================================================================*/
+QList<Model *> Query::handleResult(bool isOne)
+{
+    if(isOne)
+    {
+        limit = 1;
+    }
     sqlString = generateSql();
-    qDebug() << "SQL-query:\n" << sqlString;
-    return QList <Model *>();
+    //qDebug() << "SQL: " <<  sqlString;  //!!!выпилить позже!!!
+    QList <Model *> modelList;
+    matrix_t result;
+    QString name = schema.getTableName();
+
+    if( (!innerJoin.isEmpty()) || (!outerJoin.isEmpty()) )
+    {
+        name = relatedTName;
+    }
+
+    result = dbRequest(sqlString, name);
+    if(!result.isEmpty())
+    {
+        for(int i = 0; i < result.size(); ++i)
+        {
+            Model *model = createModel(result.at(i), name);
+            modelList.append(model);
+        }
+    }
+    else
+    {
+        errors::printError(errors::EMPTY_QUERY_RESULT, QString(""));
+    }
+
+    return modelList;
+}
+
+/*==============================================================================
+ Метод запускает SQL-запрос на выполнение и заполняет модель полученными данными
+ record - одна запись, полученная в результате выборки
+ tableName - имя таблицы, из которой производилась выборка
+==============================================================================*/
+Model *Query::createModel(const list_t &record, const QString & tableName)
+{
+    Q_UNUSED(record);
+    Q_UNUSED(tableName);
+
+    /*qDebug() << "Requesr result:\n";
+    for(int i = 0; i < record.size(); ++i)
+    {
+        qDebug() << record.at(i).first << ": " << record.at(i).second;
+    }*/
+
+    Model *model = new Model(schema.getTableName());
+
+
+    return model;
 }
 
 /*==============================================================================
@@ -124,9 +190,12 @@ QList<Model *> Query::getAll()
 int Query::getCount()
 {
     sqlString = generateSql();
-    qDebug() << "SQL-query:\n" << sqlString;
-    ///////////
-    return 0;
+    matrix_t result = dbRequest(sqlString, QString("COUNT"));
+    if(!result.isEmpty())
+    {
+        return result.at(0).at(0).second.toInt();
+    }
+    return  0;
 }
 
 /*==============================================================================
@@ -165,11 +234,13 @@ void Query::removeParameter(parameter_e name)
         case INNER_JOIN:
         {
             innerJoin.clear();
+            relatedTName.clear();
             break;
         }
         case OUTER_JOIN:
         {
             outerJoin.clear();
+            relatedTName.clear();
             break;
         }
     }
@@ -188,6 +259,7 @@ void Query::clearAll()
     outerJoin.clear();
     innerJoin.clear();
     sqlString.clear();
+    relatedTName.clear();
 }
 
 /*==============================================================================
@@ -333,3 +405,63 @@ QString Query::generateJoin (const QString & joinType, const QString & relatedTa
     }
     return res;
 }
+
+/*==============================================================================
+ Метод возвращает все записи, полученные в результате выполнения SQL-запроса
+ sql - строка SQL-запроса
+ schem - имя таблицы
+==============================================================================*/
+matrix_t Query::dbRequest(const QString &sql, const QString &tableName)
+{
+    matrix_t result;
+    QSqlDatabase base;
+    if(databases::connectToDB(base, QString("base.db")))
+    {
+        QSqlQuery *query = new QSqlQuery(base);
+        query->prepare(sql);
+        if(query->exec())
+        {
+            while(query->next())
+            {
+                list_t list;
+                for(int i = 0; i < query->record().count(); ++i)
+                {
+                    QPair <QString, QVariant> pair;
+                    TableSchema sch = Table::instance().get(tableName);
+                    if( sch.checkField(query->record().fieldName(i)) || tableName == "COUNT")
+                    {
+                        pair.first = query->record().fieldName(i);
+                        pair.second = query->value(i);
+                        if(!list.contains(pair))
+                        {
+                            list.append(pair);
+                        }
+                    }
+                }
+                if(!result.contains(list))
+                {
+                    result.append(list);
+                    list.clear();
+                }
+                else
+                {
+                    if(outerJoin != "")
+                    {
+                        result.append(list);
+                        list.clear();
+                    }
+                }
+            }
+        }
+        else
+        {
+            errors::printError(errors::QUERY_ERROR, query->lastError().text());
+        }
+    }
+    else
+    {
+        errors::printError(errors::DB_ERROR, base.lastError().text());
+    }
+    return result;
+}
+

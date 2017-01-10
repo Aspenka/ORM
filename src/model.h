@@ -29,12 +29,17 @@ class Model : public QObject
 {
     Q_OBJECT
 private:
-    TableSchema *schema;                    //схема данных
-    QMap <QString, QString> record;         //имя поля и его значение
-    QMap <QString, QString> relationData;   //данные по связям с другими таблицами
-    bool                    exists = false; //флаг существования данной записи в БД
+    TableSchema                 schema;         //схема данных
+    QMap <QString, QVariant>    record;         //имя поля и его значение
+    QMap <QString, Model *>     relationData;   //данные по связям с другими таблицами
+    bool                        exists = false; //флаг существования данной записи в БД
+
+    QString     generateInsert  ();                     //генерация запроса на добавление новой записи
+    QString     generateUpdate  ();                     //генерация запроса на обновление текущей записи
 
     void        copy            (const Model & obj);    //вспомогательный метод, копирующий данные в текущий обхект
+    bool        checkExistence  ();                     //проверка существования записи в БД
+    bool        execQuery       ();                     //выполнение SQL-запроса
 public:
     explicit    Model           (QString tableName, QObject *parent = 0);   //конструктор по умолчанию
                 Model           (const Model & obj, QObject);               //конструктор копирования
@@ -44,10 +49,11 @@ public:
     bool        operator !=     (const Model & right);  //перегрузка оператора !=
 
     void        setRecord       (const QString & fieldName, const QVariant & value);            //установка значения поля по его имени
-    void        setRelationData (const QString & relationName, const Model *relationModel);     //установка связи
+    void        setRelationData (const QString & relationName, Model *relationModel);           //установка связи
     void        setExists       (bool value);                                                   //установка флага существования записи в БД
+    void        setSchema       (const QString & tableName);                                    //установка нвой схемы данных
 
-    QString     getRecord       (const QString & fieldName);    //получение записи по имени ее поля
+    QVariant    getRecord       (const QString & fieldName);    //получение записи по имени ее поля
     Model *     getRelationData (const QString & relationName); //получение связанной модели
     bool        isExists        ();                             //получение флага существования записи в БД
 

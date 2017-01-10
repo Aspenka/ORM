@@ -27,7 +27,7 @@ private:
     void generateTables ()
     {
         TableSchema schema("base_db");
-        QStringList tableList = TableSchema::getTables("base.db");
+        QStringList tableList = databases::getTables("base.db");
         QMap <QString, TableSchema> map;
 
         foreach (QString i, tableList)

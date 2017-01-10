@@ -27,13 +27,13 @@ int main(int argc, char *argv[])
     getCount(q);
 
     q.removeParameter(COUNT);
-    q.setWhere("gateway_target_group", 1818);
+    q.setWhere("gateway_target_group_uid", 1818);
     q.setOrder("gateway_action_uid");
     getQuery(q);
 
     qDebug() << "\nPlease press any key...";
 
-    return a.exec();
+    return 0;
 }
 
 TableSchema * getSchema(const QString & tableName)
@@ -90,17 +90,18 @@ Query & tuneQuery (Query & query)
 {
     query.setLimit(3);
     query.setOrder(QString("priority"), true);
-    query.setWhere(QString("gateway_target_group"), QString("1818"));
+    query.setWhere(QString("gateway_target_group_uid"), QString("1818"));
 
     QStringList list;
-    list << "gateway_action_uid" << "meas_type_uid" << "gateway_parametr_uid" << "priority";
+    list << "gateway_action_uid" << "meas_type_uid" << "device_parametr_uid" << "priority";
     query.setSelectedFields(list);
     return query;
 }
 
 void getQuery (Query & query)
 {
-    Model *model = query.getOne();
+    //Model *model = query.getOne();
+    QList <Model *> list = query.getAll();
 }
 
 Query & tuneCount (Query & query)
@@ -112,4 +113,5 @@ Query & tuneCount (Query & query)
 void getCount (Query & query)
 {
     int count = query.getCount();
+    qDebug() << "COUNT: " << count;
 }

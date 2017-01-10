@@ -22,10 +22,11 @@ namespace errors
     //перечислитель, содержащий коды ошибок
     enum errors_e
     {
-        EXISTS_TABLE,   //отсутствие таблицы в БД
-        DB_ERROR,       //ошибка БД
-        EXISTS_RELATION,//отсутствие отношения между таблицами
-        QUERY_ERROR     //ошибка выполнения запроса
+        EXISTS_TABLE,       //отсутствие таблицы в БД
+        DB_ERROR,           //ошибка БД
+        EXISTS_RELATION,    //отсутствие отношения между таблицами
+        QUERY_ERROR,        //ошибка выполнения запроса
+        EMPTY_QUERY_RESULT  //запрос к БД не дал результатов
     };
 
     extern  QString getCurrentDate  ();                                             //функция возвращает значение текущей даты и времени
@@ -37,7 +38,9 @@ namespace errors
 =============================================================*/
 namespace databases
 {
-    extern  bool    connectToDB     (QSqlDatabase &database, QString name = "");    //функция, возвращающая результат подключения к БД
+    extern  bool        connectToDB     (QSqlDatabase &database, QString name = "");            //функция, возвращающая результат подключения к БД
+    extern  bool        checkTable      (const QString & tableName, const QString & dbName);    //функция, проверяющая наличие таблицы в БД
+    extern  QStringList getTables       (const QString & dbName);                               //функция, получающая перечень таблиц, входящих в состав БД
 }
 
 /*=============================================================

@@ -55,9 +55,9 @@ class TableSchema : public QObject
     Q_OBJECT
 private:
     QStringList         fields,         //перечень полей
-                        primaryKeys,     //перечень первичных ключей
+                        primaryKeys,    //перечень первичных ключей
                         relatedTables;  //перечень связанных таблиц
-    QStringList         dbTables;       //перечень таблиц, сходящих в состав БД
+    //QStringList         dbTables;       //перечень таблиц, сходящих в состав БД
     QString             dbName;         //имя БД
     relation_t          relations;      //перечень связей
     QString             tableName;      //имя таблицы
@@ -82,7 +82,6 @@ public:
     void                clear               ();                             //очистить схему
     void                generate            (const QString &table = "");    //сгенерировать схему
 
-    static QStringList  getTables           (const QString & databaseName); //получить имена таблиц БД
     QStringList         getFields           (); //получить перечень полей
     QStringList         getPrimaryKeys      (); //получить перечень первичных ключей
     QStringList         getRelatedTables    (); //получить перечень связанных таблиц
@@ -92,7 +91,6 @@ public:
     relation_t          getRelations        ();                             //получить все сгенерированные отношения
 
     bool                checkField          (const QString & fieldName);    //проверить наличие поля в таблице
-    bool                checkTable          (const QString &tableName);     //проверить наличие таблицы в БД
     bool                checkRelation       (const QString & relationName); //проверить наличие связанной таблицы
 signals:
 
