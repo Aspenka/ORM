@@ -58,7 +58,7 @@ public:
         TableSchema schema("base.db", table);
         if(!tables.contains(table))
         {
-            printError(errors::EXISTS_TABLE, table);
+            messages::printMessage(messages::EXISTS_TABLE, QString("Table"), table);
         }
         else
         {

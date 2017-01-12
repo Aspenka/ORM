@@ -8,24 +8,16 @@
 #include "tableschema.h"
 #include "model.h"
 
-/*========================================================================
- Перечисление, содержащее информацию о параметрах SQL-запроса:
- SELECTIONS - выбранные поля;
- WHERE      - условия выборки;
- ORDER      - сортировка;
- LIMIT      - ограничение по выборке записей;
- INNER_JOIN - выборка свнутренним объединением таблиц;
- OUTER_JOIN - выборка с внешним объединением таблиц.
-========================================================================*/
+//Перечисление содержит информацию о параметрах SQL-запроса:
 enum parameter_e
 {
-    SELECTIONS,
-    WHERE,
-    ORDER,
-    LIMIT,
-    COUNT,
-    INNER_JOIN,
-    OUTER_JOIN
+    SELECTIONS, //выбранные поля
+    WHERE,      //условия выборки
+    ORDER,      //сортировка выборки
+    LIMIT,      //ограниченик по количеству выбираемых записей
+    COUNT,      //подсчет количества записей, полученных в результате вборки
+    INNER_JOIN, //выборка с внутренним объединением таблиц
+    OUTER_JOIN  //выборка с внешним объединением таблиц
 };
 
 typedef QList <QList <QPair <QString, QVariant>>>   matrix_t;   //тип данных, позволяющий хранить все записи, полученные в результате выборки
@@ -90,9 +82,10 @@ private:
     QString     generateJoin        (const QString & joinType, const QString & relatedTable);   //генерация выборки с объединением таблиц
 
     matrix_t    dbRequest           (const QString & sql, const QString & tableName);   //выполнение сгенерированного SQL-запроса
-    Model *     createModel         (const list_t & record, const QString &tableName);  //заполнение модели данными
+    Model *     createModel         (const list_t & record, const QString &tableName);  //создание модели данными
+    Model *&    fillModel           (Model *& model, const list_t &record);             //заполнение модели данными
     QList
-    <Model*>    handleResult        (bool isOne = true);    //
+    <Model*>    handleResult        (bool isOne = true);                                //метод обрабатывает результаты SQL-запроса
 
 public:
     explicit    Query               (const QString & tableName, QObject *parent = 0);   //конструктор по умолчанию

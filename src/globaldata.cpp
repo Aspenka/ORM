@@ -3,7 +3,7 @@
 /*==============================================================================
  Метод возвращает текущую дату и время в формате yyyy-MM-dd hh:mm:ss
 ==============================================================================*/
-QString errors::getCurrentDate ()
+QString messages::getCurrentDate ()
 {
     return QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss");
 }
@@ -13,39 +13,58 @@ QString errors::getCurrentDate ()
  code - код ошибки;
  value - часть сообщения об ошибке
 ==============================================================================*/
-void errors::printError (const errors_e code, const QString & value)
+void messages::printMessage(const messages_e code, const QString className, const QString & value)
 {
     switch(code)
     {
-        case errors::EXISTS_TABLE:
+        case messages::EXISTS_TABLE:
         {
-            qDebug() << QObject::tr(" [!][TableSchema][%1][%2] Table name %3 does not exists!").
-                        arg(QString::number(code), getCurrentDate(), value);
+            qDebug() << QObject::tr(" [!][%1][%2][%3] Table name %4 does not exists!").
+                        arg(className, QString::number(code), getCurrentDate(), value);
             break;
         }
-        case errors::DB_ERROR:
+        case messages::EXISTS_RELATION:
+        {
+            qDebug() << QObject::tr(" [!][%1][%2][%3] Relation %4 does not exists!").
+                        arg(className, QString::number(code), getCurrentDate(), value);
+            break;
+        }
+        case messages::EXISTS_FIELD:
+        {
+            qDebug() << QObject::tr(" [!][%1][%2][%3] Field %4").
+                        arg(className, QString::number(code), getCurrentDate(), value);
+            break;
+        }
+        case messages::DB_ERROR:
         {
 
-            qDebug() << QObject::tr(" [!][TableSchema][%1][%2] Database connecting error: %3").
-                        arg(QString::number(code), getCurrentDate(), value);
+            qDebug() << QObject::tr(" [!][%1][%2][%3] Database connecting error: %4").
+                        arg(className, QString::number(code), getCurrentDate(), value);
             break;
         }
-        case errors::EXISTS_RELATION:
+
+        case messages::QUERY_ERROR:
         {
-            qDebug() << QObject::tr(" [!][TableSchema][%1][%2] Relation %3 does not exists!").
-                        arg(QString::number(code), getCurrentDate(), value);
+            qDebug() << QObject::tr(" [!][%1][%2][%3] SQL query error: %4").
+                        arg(className, QString::number(code), getCurrentDate(), value);
             break;
         }
-        case errors::QUERY_ERROR:
+        case messages::EMPTY_QUERY_RESULT:
         {
-            qDebug() << QObject::tr(" [!][TableSchema][%1][%2] SQL query error: %3").
-                        arg(QString::number(code), getCurrentDate(), value);
+            qDebug() << QObject::tr(" [!][%1][%2][%3] SQL query result is empty!").
+                        arg(className, QString::number(code), getCurrentDate());
             break;
         }
-        case errors::EMPTY_QUERY_RESULT:
+        case messages::RECORD_SAVED:
         {
-            qDebug() << QObject::tr(" [!][TableSchema][%1][%2] SQL query result is empty!").
-                        arg(QString::number(code), getCurrentDate());
+            qDebug() << QObject::tr(" [ ][%1][%2][%3] Record saved into table %4!").
+                        arg(className, QString::number(code), getCurrentDate(), value);
+            break;
+        }
+    case messages::RECORD_REMOVED:
+        {
+            qDebug() << QObject::tr(" [ ][%1][%2][%3] Record removed from table %4!").
+                        arg(className, QString::number(code), getCurrentDate(), value);
             break;
         }
     }
@@ -88,7 +107,7 @@ QStringList databases::getTables(const QString &dbName)
     {
         return base.tables();
     }
-    errors::printError(errors::DB_ERROR, base.lastError().text());
+    messages::printMessage(messages::DB_ERROR, QString("databases"), base.lastError().text());
     return QStringList();
 }
 

@@ -22,6 +22,14 @@ Model::Model(const Model &obj, QObject)
 }
 
 /*==============================================================================
+ Деструктор класса
+==============================================================================*/
+Model::~Model()
+{
+    clear();
+}
+
+/*==============================================================================
  Перегрузка оператора =
 ==============================================================================*/
 Model &Model::operator =(const Model &obj)
@@ -61,7 +69,20 @@ bool Model::operator !=(const Model &right)
 ==============================================================================*/
 QString Model::generateInsert()
 {
-    return QString("");
+    QString sql = "INSERT INTO " + schema.getTableName() + " (";
+    QStringList fieldList = schema.getFields();
+    QString fields, values;
+    fields = fieldList.at(0);
+    values = SQL::convertToSQLString(getRecord(fieldList.at(0)));
+
+    for(int i = 1; i < fieldList.size(); ++i)
+    {
+        fields += ", " + fieldList.at(i);
+        values += ", " + SQL::convertToSQLString(getRecord(fieldList.at(i)));
+    }
+    sql += fields + ") VALUES (";
+    sql += values + ")";
+    return sql;
 }
 
 /*==============================================================================
@@ -69,9 +90,40 @@ QString Model::generateInsert()
 ==============================================================================*/
 QString Model::generateUpdate()
 {
-    return QString("");
+    QString sql = "UPDATE " + schema.getTableName();
+    sql += " SET ";
+    QMap <QString, QVariant>::const_iterator i = record.begin();
+    ++i;
+    sql += i.key() + " = " + SQL::convertToSQLString(i.value());
+    ++i;
+    for(; i != record.end(); ++i)
+    {
+        sql += ", " + i.key() + " = " + SQL::convertToSQLString(i.value());
+    }
+    sql += generateWhere();
+    return sql;
 }
 
+/*==============================================================================
+ Метод генерирует строку условий, необходимых для успешного выполнения  SQL-зап-
+ роса
+==============================================================================*/
+QString Model::generateWhere()
+{
+    QString sql = " WHERE ";
+    QStringList pkList = schema.getPrimaryKeys();
+    sql += pkList.at(0) + " = " + SQL::convertToSQLString(getRecord(pkList.at(0)));
+    for(int i = 1; i < pkList.size(); ++i)
+    {
+        sql += " AND ";
+        sql += pkList.at(i) + " = " + SQL::convertToSQLString(getRecord(pkList.at(i)));
+    }
+    return sql;
+}
+
+/*==============================================================================
+ Метод копирует данные из объекта obj в текущий объект
+==============================================================================*/
 void Model::copy(const Model &obj)
 {
     schema = obj.schema;
@@ -106,9 +158,28 @@ bool Model::checkExistence()
 /*==============================================================================
  Метод выполняет SQL-запрос и возвращает результаты его выполнения
 ==============================================================================*/
-bool Model::execQuery()
+bool Model::execQuery(const QString &sql)
 {
-    return true;
+    QSqlDatabase base;
+    if(databases::connectToDB(base, "base.db"))
+    {
+        QSqlQuery *query = new QSqlQuery(base);
+        query->prepare(sql);
+        if(query->exec())
+        {
+            return true;
+        }
+        else
+        {
+            messages::printMessage(messages::QUERY_ERROR, QString("Model"), query->lastError().text());
+        }
+        delete query;
+    }
+    else
+    {
+        messages::printMessage(messages::DB_ERROR, QString("Model"), base.lastError().text());
+    }
+    return false;
 }
 
 /*==============================================================================
@@ -118,7 +189,15 @@ bool Model::execQuery()
 ==============================================================================*/
 void Model::setRecord(const QString &fieldName, const QVariant &value)
 {
-    record.insert(fieldName, value);
+    if(schema.checkField(fieldName))
+    {
+        record.insert(fieldName, value);
+    }
+    else
+    {
+        QString message = fieldName + " doesn't exists in table " + schema.getTableName();
+        messages::printMessage(messages::EXISTS_FIELD, QString("Model"), message);
+    }
 }
 
 /*==============================================================================
@@ -152,7 +231,7 @@ void Model::setSchema(const QString &tableName)
     }
     else
     {
-        errors::printError(errors::EXISTS_TABLE, tableName);
+        messages::printMessage(messages::EXISTS_TABLE, QString("Model"), tableName);
         schema.clear();
     }
 }
@@ -198,7 +277,14 @@ bool Model::isExists()
 ==============================================================================*/
 bool Model::save()
 {
-    return true;
+    if(isExists())
+    {
+        QString res = generateUpdate();
+        return execQuery(res);
+    }
+    QString res = generateInsert();
+    setExists(true);
+    return execQuery(res);
 }
 
 /*==============================================================================
@@ -206,7 +292,9 @@ bool Model::save()
 ==============================================================================*/
 bool Model::remove()
 {
-    return true;
+    QString sql = "DELETE FROM " + schema.getTableName();
+    sql += generateWhere();
+    return execQuery(sql);
 }
 
 /*==============================================================================
@@ -216,7 +304,7 @@ void Model::clear()
 {
     schema.clear();
     record.clear();
+    qDeleteAll(relationData.begin(), relationData.end());
     relationData.clear();
     exists = false;
 }
-

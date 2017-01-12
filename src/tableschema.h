@@ -57,7 +57,6 @@ private:
     QStringList         fields,         //перечень полей
                         primaryKeys,    //перечень первичных ключей
                         relatedTables;  //перечень связанных таблиц
-    //QStringList         dbTables;       //перечень таблиц, сходящих в состав БД
     QString             dbName;         //имя БД
     relation_t          relations;      //перечень связей
     QString             tableName;      //имя таблицы

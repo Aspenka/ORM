@@ -34,15 +34,17 @@ private:
     QMap <QString, Model *>     relationData;   //данные по связям с другими таблицами
     bool                        exists = false; //флаг существования данной записи в БД
 
-    QString     generateInsert  ();                     //генерация запроса на добавление новой записи
-    QString     generateUpdate  ();                     //генерация запроса на обновление текущей записи
+    QString     generateInsert  (); //генерация запроса на добавление новой записи
+    QString     generateUpdate  (); //генерация запроса на обновление текущей записи
+    QString     generateWhere   (); //генерация условия для выполнения запроса
 
     void        copy            (const Model & obj);    //вспомогательный метод, копирующий данные в текущий обхект
     bool        checkExistence  ();                     //проверка существования записи в БД
-    bool        execQuery       ();                     //выполнение SQL-запроса
+    bool        execQuery       (const QString & sql);  //выполнение SQL-запроса
 public:
     explicit    Model           (QString tableName, QObject *parent = 0);   //конструктор по умолчанию
                 Model           (const Model & obj, QObject);               //конструктор копирования
+                ~Model          ();                                         //деструктор
 
     Model &     operator =      (Model const & obj);    //перегрузка оператора =
     bool        operator ==     (const Model & right);  //перегрузка оператора ==
@@ -60,7 +62,6 @@ public:
     bool        save            (); //сохранение записи в БД
     bool        remove          (); //удаление записи из БД
     void        clear           (); //очистка модели
-
 signals:
 
 public slots:

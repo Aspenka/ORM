@@ -17,20 +17,26 @@
  Пространство имен errors содержит поля и методы, предназначен-
  ные для обработки ошибок
 =============================================================*/
-namespace errors
+namespace messages
 {
     //перечислитель, содержащий коды ошибок
-    enum errors_e
+    enum messages_e
     {
+        //================Коды ошибок===================
         EXISTS_TABLE,       //отсутствие таблицы в БД
-        DB_ERROR,           //ошибка БД
         EXISTS_RELATION,    //отсутствие отношения между таблицами
+        EXISTS_FIELD,       //отсутствие поля в таблице
+        DB_ERROR,           //ошибка БД
         QUERY_ERROR,        //ошибка выполнения запроса
-        EMPTY_QUERY_RESULT  //запрос к БД не дал результатов
+        EMPTY_QUERY_RESULT,  //запрос к БД не дал результатов
+
+        //=======Коды информационных сообщений==========
+        RECORD_SAVED,       //запись сохранена в БД
+        RECORD_REMOVED,     //запись удалена из БД
     };
 
-    extern  QString getCurrentDate  ();                                             //функция возвращает значение текущей даты и времени
-    extern  void    printError      (const errors_e code, const QString & value);   //отображение сообщения об ошибке в зависимости от ее кода
+    extern  QString getCurrentDate  ();                                                                             //функция возвращает значение текущей даты и времени
+    extern  void    printMessage    (const messages_e code, const QString className, const QString & value = "");   //отображение сообщения об событии в зависимости от его кода
 }
 
 /*=============================================================

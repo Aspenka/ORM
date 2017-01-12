@@ -105,12 +105,12 @@ void TableSchema::generate(const QString & table)
         }
         else
         {
-            errors::printError(errors::EXISTS_TABLE, table);
+            messages::printMessage(messages::EXISTS_TABLE, QString("TableSchema"), table);
         }
     }
     else
     {
-        errors::printError(errors::DB_ERROR, base.lastError().text());
+        messages::printMessage(messages::DB_ERROR, QString("TableSchema"), base.lastError().text());
     }
 }
 
@@ -158,7 +158,7 @@ QPair<QString, QString> TableSchema::getRelation(const QString &tableName)
     }
     else
     {
-        errors::printError(errors::EXISTS_RELATION, tableName);
+        messages::printMessage(messages::EXISTS_RELATION, QString("TableSchema"), tableName);
     }
     return QPair <QString, QString>();
 }
@@ -200,7 +200,7 @@ bool TableSchema::checkRelation(const QString & relationName)
         }
         else
         {
-            errors::printError(errors::EXISTS_RELATION, relationName);
+            messages::printMessage(messages::EXISTS_RELATION, QString("TableSchema"), relationName);
             return false;
         }
     }
@@ -276,17 +276,17 @@ void TableSchema::setRelations()
             }
             else
             {
-                errors::printError(errors::QUERY_ERROR, query->lastError().text());
+                messages::printMessage(messages::QUERY_ERROR, QString("TableSchema"), query->lastError().text());
             }
         }
         else
         {
-            errors::printError(errors::QUERY_ERROR, query->lastError().text());
+            messages::printMessage(messages::QUERY_ERROR, QString("TableSchema"), query->lastError().text());
         }
         delete query;
     }
     else
     {
-        errors::printError(errors::DB_ERROR, base.lastError().text());
+        messages::printMessage(messages::DB_ERROR, QString("TableSchema"), base.lastError().text());
     }
 }

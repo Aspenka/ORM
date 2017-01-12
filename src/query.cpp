@@ -27,7 +27,7 @@ void Query::setSchema(const QString &tableName)
     }
     else
     {
-        errors::printError(errors::EXISTS_TABLE, tableName);
+        messages::printMessage(messages::EXISTS_TABLE, QString("Query"), tableName);
         schema.clear();
     }
 }
@@ -48,7 +48,15 @@ void Query::setSelectedFields(const QStringList &list)
 ==============================================================================*/
 void Query::setWhere(const QString &fieldName, const QVariant & value)
 {
-    where.insert(fieldName, value);
+    if(schema.checkField(fieldName))
+    {
+        where.insert(fieldName, value);
+    }
+    else
+    {
+        QString message = fieldName + " doesn't exists in table " + schema.getTableName();
+        messages::printMessage(messages::EXISTS_FIELD, QString("Query"), message);
+    }
 }
 
 /*==============================================================================
@@ -59,13 +67,21 @@ void Query::setWhere(const QString &fieldName, const QVariant & value)
 ==============================================================================*/
 void Query::setOrder(QString fieldName, bool desc)
 {
-    if(desc != false)
+    if(schema.checkField(fieldName))
     {
-        order = QPair <QString, bool> (fieldName, true);
+        if(desc != false)
+        {
+            order = QPair <QString, bool> (fieldName, true);
+        }
+        else
+        {
+            order = QPair <QString, bool> (fieldName, false);
+        }
     }
     else
     {
-        order = QPair <QString, bool> (fieldName, false);
+        QString message = fieldName + " doesn't exists in table " + schema.getTableName();
+        messages::printMessage(messages::EXISTS_FIELD, QString("Query"), message);
     }
 }
 
@@ -84,7 +100,15 @@ void Query::setLimit(int lim)
 ==============================================================================*/
 void Query::setCount(QString fieldName)
 {
-    count = generateCount(fieldName);
+    if(fieldName == "*" || schema.checkField(fieldName))
+    {
+        count = generateCount(fieldName);
+    }
+    else
+    {
+        QString message = fieldName + " doesn't exists in table " + schema.getTableName();
+        messages::printMessage(messages::EXISTS_FIELD, QString("Query"), message);
+    }
 }
 
 /*==============================================================================
@@ -93,8 +117,15 @@ void Query::setCount(QString fieldName)
 ==============================================================================*/
 void Query::withOuterJoin(const QString &relatedTable)
 {
-    outerJoin = generateJoin(QString(" LEFT OUTER JOIN "), relatedTable);
-    relatedTName = relatedTable;
+    if(schema.checkRelation(relatedTable))
+    {
+        outerJoin = generateJoin(QString(" LEFT OUTER JOIN "), relatedTable);
+        relatedTName = relatedTable;
+    }
+    else
+    {
+        messages::printMessage(messages::EXISTS_RELATION, QString("Query"), relatedTable);
+    }
 }
 
 /*==============================================================================
@@ -103,8 +134,15 @@ void Query::withOuterJoin(const QString &relatedTable)
 ==============================================================================*/
 void Query::withInnerJoin(const QString &relatedTable)
 {
-    innerJoin = generateJoin(QString(" INNER JOIN "), relatedTable);
-    relatedTName = relatedTable;
+    if(schema.checkRelation(relatedTable))
+    {
+        innerJoin = generateJoin(QString(" INNER JOIN "), relatedTable);
+        relatedTName = relatedTable;
+    }
+    else
+    {
+        messages::printMessage(messages::EXISTS_RELATION, QString("Query"), relatedTable);
+    }
 }
 
 /*==============================================================================
@@ -130,12 +168,13 @@ QList<Model *> Query::getAll()
 ==============================================================================*/
 QList<Model *> Query::handleResult(bool isOne)
 {
+    int currentLimit = 0;
     if(isOne)
     {
+        currentLimit = limit;
         limit = 1;
     }
     sqlString = generateSql();
-    //qDebug() << "SQL: " <<  sqlString;  //!!!выпилить позже!!!
     QList <Model *> modelList;
     matrix_t result;
     QString name = schema.getTableName();
@@ -156,9 +195,16 @@ QList<Model *> Query::handleResult(bool isOne)
     }
     else
     {
-        errors::printError(errors::EMPTY_QUERY_RESULT, QString(""));
+        messages::printMessage(messages::EMPTY_QUERY_RESULT, QString("Query"), QString(""));
     }
-
+    if(currentLimit == 0)
+    {
+        removeParameter(LIMIT);
+    }
+    else
+    {
+        limit = currentLimit;
+    }
     return modelList;
 }
 
@@ -169,18 +215,31 @@ QList<Model *> Query::handleResult(bool isOne)
 ==============================================================================*/
 Model *Query::createModel(const list_t &record, const QString & tableName)
 {
-    Q_UNUSED(record);
-    Q_UNUSED(tableName);
+    Model *model = new Model(schema.getTableName());
+    if(tableName == relatedTName)
+    {
+        Model *relationModel = new Model(tableName);
+        fillModel(relationModel, record);
+        model->setRelationData(tableName, relationModel);
+    }
+    else
+    {
+        fillModel(model, record);
+    }
+    return model;
+}
 
-    /*qDebug() << "Requesr result:\n";
+/*==============================================================================
+ Метод заполняет модель данными.
+ model - модель данных
+ record - перечень данных, записываемых в модель
+==============================================================================*/
+Model *&Query:: fillModel(Model *&model, const list_t &record)
+{
     for(int i = 0; i < record.size(); ++i)
     {
-        qDebug() << record.at(i).first << ": " << record.at(i).second;
-    }*/
-
-    Model *model = new Model(schema.getTableName());
-
-
+        model->setRecord(record.at(i).first, record.at(i).second);
+    }
     return model;
 }
 
@@ -280,7 +339,6 @@ QString Query::generateSql()
     query += generateWhere(where);
     query += generateOrder(order);
     query += generateLimit(limit);
-
     return query;
 }
 
@@ -377,12 +435,18 @@ QString Query::generateLimit(int value)
 ==============================================================================*/
 QString Query::generateCount(QString fieldName)
 {
-    QString counts = "";
-    if(fieldName != "")
+    if(fieldName == "*" || schema.checkField(fieldName))
     {
+        QString counts = "";
         counts += "COUNT(" + fieldName + ")";
+        return counts;
     }
-    return counts;
+    else
+    {
+        QString message = fieldName + " doesn't exists in table " + schema.getTableName();
+        messages::printMessage(messages::EXISTS_FIELD, QString("Query"), message);
+        return QString("");
+    }
 }
 
 /*==============================================================================
@@ -393,16 +457,9 @@ QString Query::generateCount(QString fieldName)
 QString Query::generateJoin (const QString & joinType, const QString & relatedTable)
 {
     QString res = "";
-    if(schema.checkRelation(relatedTable))
-    {
-        res += joinType + relatedTable + " ON ";
-        QPair <QString, QString> relation = schema.getRelation(relatedTable);
-        res += relation.first + " = " + relation.second;
-    }
-    else
-    {
-        errors::printError(errors::EXISTS_RELATION, relatedTable);
-    }
+    res += joinType + relatedTable + " ON ";
+    QPair <QString, QString> relation = schema.getRelation(relatedTable);
+    res += relation.first + " = " + relation.second;
     return res;
 }
 
@@ -455,12 +512,13 @@ matrix_t Query::dbRequest(const QString &sql, const QString &tableName)
         }
         else
         {
-            errors::printError(errors::QUERY_ERROR, query->lastError().text());
+            messages::printMessage(messages::QUERY_ERROR, QString("Query"), query->lastError().text());
         }
+        delete query;
     }
     else
     {
-        errors::printError(errors::DB_ERROR, base.lastError().text());
+        messages::printMessage(messages::DB_ERROR, QString("Query"), base.lastError().text());
     }
     return result;
 }
